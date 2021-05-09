@@ -1,5 +1,6 @@
 .venv/
+InputData/traces10000.csv
 __pycache__/
-EMwavedata10000/
-table/
+Table/
 Pipfile.lock
+*.jpg

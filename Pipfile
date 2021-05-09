@@ -7,12 +7,12 @@ verify_ssl = true
 pylint = "*"
 black = "*"
 flake8 = "*"
-tqdm = "*"
 
 [packages]
 numpy = "*"
 matplotlib = "*"
-scipy = "*"
+psutil = "*"
+tqdm = "*"
 
 [requires]
 python_version = "3.8"

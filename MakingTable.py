@@ -1,7 +1,10 @@
 import re
-from typing import List, Tuple
+from concurrent.futures import ProcessPoolExecutor
+from typing import Any, List, Tuple
 
 import numpy as np
+import psutil
+from tqdm import tqdm
 
 import aes_state
 from aes_state import State
@@ -270,39 +273,55 @@ InvSbox: Tuple[int, ...] = (
 WaveNum = 10000
 
 
-def Hamming():
-    print("Loading Traces")
-    text = np.loadtxt(
-        "./EMwavedata10000/CIPHERTEXT10000.txt", dtype="U", max_rows=WaveNum
+def MakingTable() -> None:
+    text: List[str] = np.loadtxt(
+        "./InputData/CIPHERTEXT10000.txt", dtype="U", max_rows=WaveNum
     )
     TextNum: int = len(text)
+    args: List[Any] = [0] * 16
+    ProcessNum: int = 0
+
     for column in range(4):
         for row in range(4):
-            print("Making {} Byte Table".format(row + 4 * column))
-            HDTable: List[List[int]] = [[0]] * TextNum
-            for i, CipherText in enumerate(text):
-                CipherSt: aes_state.State = aes_state.State([])
-                KeySt: aes_state.State = aes_state.State([])
+            arg: List[Any] = [0]
 
-                CipherSt = InputState(CipherText)
-                HD: List[int] = [0] * 256
-                for Key in range(256):
-                    R9OutSt: aes_state.State = aes_state.State([])
-                    ShiftCipherSt: aes_state.State = aes_state.State([])
-                    hd: int = 0
+            arg = [row, column, TextNum, text]
+            args[row + 4 * column] = arg
+    ProcessNum = psutil.cpu_count()
+    with ProcessPoolExecutor(max_workers=ProcessNum) as executor:
+        list(tqdm(executor.map(ByteTable, args), total=16))
 
-                    KeySt.set(row, column, Key)
-                    R9OutSt = R10toR9(CipherSt, KeySt)
-                    ShiftCipherSt = ShiftRows(CipherSt)
-                    hd = HDCalc(row, column, ShiftCipherSt, R9OutSt)
-                    HD[Key] = hd
-                HDTable[i] = HD
-            np.savetxt(
-                "./table/S_{}_{}.csv".format(row, column),
-                HDTable,
-                delimiter=",",
-                fmt="%d",
-            )
+
+def ByteTable(args: List[Any]) -> None:
+    row: int = args[0]
+    column: int = args[1]
+    TextNum: int = args[2]
+    text: List[str] = args[3]
+
+    HDTable: List[List[int]] = [[0]] * TextNum
+    for i, CipherText in enumerate(text):
+        CipherSt: aes_state.State = aes_state.State([])
+        KeySt: aes_state.State = aes_state.State([])
+
+        CipherSt = InputState(CipherText)
+        HD: List[int] = [0] * 256
+        for Key in range(256):
+            R9OutSt: aes_state.State = aes_state.State([])
+            ShiftCipherSt: aes_state.State = aes_state.State([])
+            hd: int = 0
+
+            KeySt.set(row, column, Key)
+            R9OutSt = R10toR9(CipherSt, KeySt)
+            ShiftCipherSt = ShiftRows(CipherSt)
+            hd = HDCalc(row, column, ShiftCipherSt, R9OutSt)
+            HD[Key] = hd
+        HDTable[i] = HD
+    np.savetxt(
+        "./Table/S_{}_{}.csv".format(row, column),
+        HDTable,
+        delimiter=",",
+        fmt="%d",
+    )
 
 
 def R10toR9(R10St: aes_state.State, KeySt: aes_state.State) -> aes_state.State:
@@ -409,4 +428,4 @@ def HDCalc(row: int, column: int, St1: aes_state.State, St2: aes_state.State) ->
     return hd
 
 
-Hamming()
+MakingTable()

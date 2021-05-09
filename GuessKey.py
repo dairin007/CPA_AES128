@@ -277,14 +277,17 @@ Rcon: Tuple[int, ...] = (
 )
 
 WaveNum: int = 5000
-f: int = 2980
+f: int = 2970
 e: int = 3020
+point: int = 3007
 
 
-def main():
-    print("Loading Lookup Table")
+def main() -> None:
+    """
+    traces1000は10000文の波形を結合したもの
+    """
     a = np.loadtxt(
-        "./EMwavedata10000/traces10000.csv",
+        "./InputData/traces10000.csv",
         dtype="float",
         delimiter=",",
         max_rows=WaveNum,
@@ -298,6 +301,7 @@ def main():
     STable = LoadTable()
     for i, W in enumerate(a):
         Wave[i] = np.mean(W[f:e])
+        # Wave[i] = W[point]
     print("Guess key...")
     R10Key = Guess(Wave, STable)
     KeyStr = "0x" + "".join(list(map(lambda x: "{:02x}".format(x), R10Key)))
@@ -332,7 +336,7 @@ def Guess(Wave: List[float], STable: List[List[List[int]]]) -> List[int]:
 def LoadTable() -> List[List[List[int]]]:
     STable: List[List[List[int]]] = [[[0]]] * 16
 
-    os.chdir("./STable/")
+    os.chdir("./Table/")
     for csvfile in glob.glob("*.csv"):
         r: int = 0
         c: int = 0
